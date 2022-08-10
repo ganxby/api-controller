@@ -36,6 +36,10 @@ class ManagerAPI:
         }
 
         response = await self.aiohttp_request(data)
+
+        if not 'session' in response:
+            return
+
         self.session = response['session']
 
     async def request(self, action, params):
@@ -56,8 +60,11 @@ class ManagerAPI:
             return response['errors']
 
         if not 'errors' in response:
-            f = open('users.txt', 'r')
-            lines = f.readlines()
+            try:
+                f = open('users.txt', 'r')
+                lines = f.readlines()
+            except FileNotFoundError:
+                return f'File "users.txt" not found. Created empty group {params["id"]}'
 
             data = {
                 'to': {
@@ -78,8 +85,11 @@ class ManagerAPI:
         return response
 
     async def multiple_mailing(self, params):  # запуск рассылки для списка групп (из файла)
-        f = open('groups.txt', 'r')
-        lines = f.readlines()
+        try:
+            f = open('groups.txt', 'r')
+            lines = f.readlines()
+        except FileNotFoundError:
+            return f'File "groups.txt" not found'
 
         for line in lines:  # асинхронный цикл не используется, т.к. при большом количестве групп можно случайно "задудосить" апи
             params['group'] = line.rstrip('\n')
@@ -87,8 +97,6 @@ class ManagerAPI:
             print(response)
 
             await asyncio.sleep(2)
-
-        return 'ok'
 
     async def subscribers_info(self):  # информация о всех подписчиках; подписчики сгруппированы по типу уведомления
         subscribers_data = {}
